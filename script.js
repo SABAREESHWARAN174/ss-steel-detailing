@@ -158,8 +158,8 @@ const updateViewer = () => {
                 </div>
             `;
         } else {
-            // Added view=Fit to help landscape drawings fill the viewer
-            drawingViewer.innerHTML = `<embed src="${data.path}#toolbar=0&navpanes=0&scrollbar=0&view=Fit" type="application/pdf" width="100%" height="100%" class="fade-in">`;
+            // Switched to iframe for better mobile view-only compatibility
+            drawingViewer.innerHTML = `<iframe src="${data.path}#toolbar=0&navpanes=0&scrollbar=0&view=Fit" width="100%" height="100%" style="border: none;" class="fade-in"></iframe>`;
         }
         
         currentIdxDisplay.innerText = currentIdx + 1;
