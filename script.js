@@ -141,13 +141,16 @@ const prevBtn = document.getElementById('prevDrawing');
 const nextBtn = document.getElementById('nextDrawing');
 const tabBtns = document.querySelectorAll('.tab-btn');
 
-const updateViewer = () => {
+// Initialize PDF.js
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+
+const updateViewer = async () => {
     const data = drawingsData[currentCategory][currentIdx];
     
     // Animate out
     drawingViewer.style.opacity = '0';
     
-    setTimeout(() => {
+    setTimeout(async () => {
         if (data.type === 'contact') {
             drawingViewer.innerHTML = `
                 <div class="contact-slide fade-in">
@@ -157,9 +160,41 @@ const updateViewer = () => {
                     <a href="#contact" class="btn btn-primary">Contact Our Team</a>
                 </div>
             `;
+            lucide.createIcons();
         } else {
-            // Switched to iframe for better mobile view-only compatibility
-            drawingViewer.innerHTML = `<iframe src="${data.path}#toolbar=0&navpanes=0&scrollbar=0&view=Fit" width="100%" height="100%" style="border: none;" class="fade-in"></iframe>`;
+            // Use PDF.js to render PDF directly to Canvas for Mobile compatibility and No-Download protection
+            drawingViewer.innerHTML = '<div class="viewer-placeholder"><p>Rendering Drawing...</p></div>';
+            
+            try {
+                const loadingTask = pdfjsLib.getDocument(data.path);
+                const pdf = await loadingTask.promise;
+                const page = await pdf.getPage(1);
+                
+                // Calculate scale to fit container
+                const containerWidth = drawingViewer.clientWidth || 800;
+                const baseViewport = page.getViewport({ scale: 1 });
+                const scale = (containerWidth / baseViewport.width) * 1.5; // High quality scale
+                const viewport = page.getViewport({ scale: scale });
+
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+
+                const renderContext = {
+                    canvasContext: context,
+                    viewport: viewport
+                };
+
+                await page.render(renderContext).promise;
+                
+                drawingViewer.innerHTML = '';
+                drawingViewer.appendChild(canvas);
+                canvas.classList.add('fade-in');
+            } catch (error) {
+                console.error('Error rendering PDF:', error);
+                drawingViewer.innerHTML = '<div class="viewer-placeholder"><p>Error loading drawing. Please try again.</p></div>';
+            }
         }
         
         currentIdxDisplay.innerText = currentIdx + 1;
@@ -167,7 +202,6 @@ const updateViewer = () => {
         
         // Animate in
         drawingViewer.style.opacity = '1';
-        lucide.createIcons();
     }, 300);
 };
 
